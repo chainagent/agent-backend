@@ -1,0 +1,60 @@
+version: '3'
+services:
+  control_plane:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEPLOY_SETTINGS_NAME=control_plane
+    ports:
+      - "8000:8000"
+
+  message_queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DEPLOY_SETTINGS_NAME=message_queue
+    ports:
+      - "8001:8000"
+
+  rag_workflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEPLOY_SETTINGS_NAME=rag_workflow
+    ports:
+      - "8002:8000"
+    depends_on:
+      - qdrant
+      - control_plane
+      - message_queue
+
+  agent_workflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEPLOY_SETTINGS_NAME=agent_workflow
+      - COINBASE_API_KEY=${COINBASE_API_KEY}
+      - COINBASE_API_SECRET=${COINBASE_API_SECRET}
+      - XMTP_GROUP_ID=${XMTP_GROUP_ID}
+    ports:
+      - "8003:8000"
+    depends_on:
+      - qdrant
+      - control_plane
+      - message_queue
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+
+volumes:
+  qdrant_storage:
